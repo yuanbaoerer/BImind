@@ -1,5 +1,6 @@
 package com.yupi.springbootinit.controller;
 
+import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yupi.springbootinit.annotation.AuthCheck;
@@ -12,6 +13,7 @@ import com.yupi.springbootinit.constant.UserConstant;
 import com.yupi.springbootinit.exception.BusinessException;
 import com.yupi.springbootinit.exception.ThrowUtils;
 import com.yupi.springbootinit.manager.AIManager;
+import com.yupi.springbootinit.manager.RedisLimiterManager;
 import com.yupi.springbootinit.model.dto.chart.*;
 import com.yupi.springbootinit.model.entity.Chart;
 import com.yupi.springbootinit.model.entity.User;
@@ -29,6 +31,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -50,6 +54,9 @@ public class ChartController {
 
     @Resource
     private AIManager aiManager;
+
+    @Resource
+    private RedisLimiterManager redisLimiterManager;
 
     // region 增删改查
 
@@ -148,7 +155,7 @@ public class ChartController {
      * @param multipartFile
      * @param genChatByAIRequest
      * @param request
-     * @return
+     * @return 向前端返回生成biResponse(genChart 图表代码，genResult 分析总结，chartId 图表id)
      */
     @PostMapping("/gen")
     // 把返回值改成BiResponse
@@ -160,9 +167,35 @@ public class ChartController {
         String chartType = genChatByAIRequest.getChartType();
         // 校验
         ThrowUtils.throwIf(StringUtils.isBlank(goal), ErrorCode.PARAMS_ERROR,"目标为空");
+        // 如果名称不为空，并且名称长度大于100，就抛出异常
         ThrowUtils.throwIf(StringUtils.isBlank(name) && name.length() > 100, ErrorCode.PARAMS_ERROR,"目标为空");
 
+        /**
+         * 校验文件
+         */
+        long size = multipartFile.getSize();
+        String originalFilename = multipartFile.getOriginalFilename();
+        /**
+         * 校验文件大小
+         * 定义一个常亮表示1MB
+         */
+        final long ONE_MB = 1024 * 1024L;
+        // 如果文件大小，大于1MB，抛出异常提示
+        ThrowUtils.throwIf(size > ONE_MB, ErrorCode.PARAMS_ERROR,"文件超过 1MB");
+
+        /**
+         * 校验文件后缀
+         * 利用FileUtil工具类中的getSuffix获取文件后缀名
+         */
+        String suffix = FileUtil.getSuffix(originalFilename);
+        // 定义合法的后缀列表
+        final List<String> validFileSuffixList = Arrays.asList("xlsx","xls");
+        ThrowUtils.throwIf(!validFileSuffixList.contains(suffix), ErrorCode.PARAMS_ERROR,"文件类型错误");
+
         User loginUser = userService.getLoginUser(request);
+
+        // 限流判断，每个用户一个限流器
+        redisLimiterManager.doRateLimit("genChartByAI_" + loginUser.getId());
 
 //        // 指定一个模型id（把id写死，也可以定义为一个常亮）
 //        long biModelId =

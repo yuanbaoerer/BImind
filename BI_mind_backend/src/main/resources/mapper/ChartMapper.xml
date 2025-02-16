@@ -24,4 +24,15 @@
         userId,createTime,updateTime,
         isDelete
     </sql>
+
+<!--  MyBatis实现动态SQL
+    queryChartData唯一标识符；parameterType查询语句的参数类型
+            ${querySql}是SQL查询语句的占位符
+        select * from chart_#{chartId} 不够灵活，上面那个最灵活
+        但使用$符号，有sql注入风险
+-->
+    <select id="queryChartData" parameterType="string" resultType="map">
+
+        ${querySql}
+    </select>
 </mapper>
