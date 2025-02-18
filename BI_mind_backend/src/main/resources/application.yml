@@ -64,6 +64,7 @@ mybatis-plus:
 # 讯飞 AI 配置
 xun-fei:
   client:
+    url: wss://spark-api.xf-yun.com/v4.0/chat
     appId: 9902373e
     apiSecret: ZDBlMTk5NGExZGFiMDRmMjE1NTYyNDBh
     apiKey: 845ca2be4b64f20e3e8d16ff07a98205

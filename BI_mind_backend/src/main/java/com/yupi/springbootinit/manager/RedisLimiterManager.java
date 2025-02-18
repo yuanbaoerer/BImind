@@ -32,6 +32,8 @@ public class RedisLimiterManager {
          * rate：时间窗口内允许的令牌数量，一个请求对应一个令牌。
          * rateInterval：时间窗口的间隔。
          * RateIntervalUnit：时间窗口的单位（如秒、毫秒等）
+         *
+         * rate * reteInterval 限定1s最多2次请求
          */
         rateLimiter.trySetRate(RateType.OVERALL,2,1, RateIntervalUnit.SECONDS);
         /**
