@@ -4,10 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.yupi.springbootinit.annotation.AuthCheck;
-import com.yupi.springbootinit.common.BaseResponse;
-import com.yupi.springbootinit.common.DeleteRequest;
-import com.yupi.springbootinit.common.ErrorCode;
-import com.yupi.springbootinit.common.ResultUtils;
+import com.yupi.springbootinit.common.*;
 import com.yupi.springbootinit.constant.CommonConstant;
 import com.yupi.springbootinit.constant.UserConstant;
 import com.yupi.springbootinit.exception.BusinessException;
@@ -34,6 +31,7 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Stack;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 
@@ -60,7 +58,7 @@ public class ChartController {
 
     @Resource
     private RedisLimiterManager redisLimiterManager;
-    @Autowired
+    @Resource
     private ThreadPoolExecutor threadPoolExecutor;
 
     // region 增删改查
@@ -341,7 +339,7 @@ public class ChartController {
         chart.setGoal(goal);
         chart.setChartType(chartType);
         chart.setChartData(csvData);
-        chart.setStatus("wait");
+        chart.setStatus(Status.WAITING.getStatus());
         chart.setUserId(loginUser.getId());
         boolean saveResult = chartService.save(chart);
         ThrowUtils.throwIf(!saveResult,ErrorCode.SYSTEM_ERROR,"图表保存失败");
@@ -358,7 +356,7 @@ public class ChartController {
             Chart updateChart = new Chart();
             updateChart.setId(chart.getId());
             // 把任务状态更改为执行中
-            updateChart.setStatus("running");
+            updateChart.setStatus(Status.RUNNING.getStatus());
             boolean b = chartService.updateById(updateChart);
             // 如果提交失败（一般情况下，更新失败可能意味着数据库出问题了）
             if (!b){
@@ -385,7 +383,7 @@ public class ChartController {
             updateChartResult.setId(chart.getId());
             updateChartResult.setGenChart(genChart);
             updateChartResult.setGenResult(genResult);
-            updateChartResult.setStatus("succeed");
+            updateChartResult.setStatus(Status.SUCCEED.getStatus());
             boolean updateResult = chartService.updateById(updateChartResult);
             if (!updateResult){
                 handleChartUpdateError(chart.getId(), "更新图表succeed状态失败");
@@ -426,7 +424,7 @@ public class ChartController {
     private void handleChartUpdateError(long chartId, String execMessage){
         Chart updateChartResult = new Chart();
         updateChartResult.setId(chartId);
-        updateChartResult.setStatus("failed");
+        updateChartResult.setStatus(Status.FAILED.getStatus());
         updateChartResult.setExecMessage(execMessage);
         boolean updateResult = chartService.updateById(updateChartResult);
         if (!updateResult){
@@ -495,8 +493,10 @@ public class ChartController {
         long size = chartQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        QueryWrapper<Chart> queryWrapper = getQueryWrapper(chartQueryRequest);
+        queryWrapper.orderByDesc("createTime");
         Page<Chart> chartPage = chartService.page(new Page<>(current, size),
-                getQueryWrapper(chartQueryRequest));
+                queryWrapper);
         return ResultUtils.success(chartPage);
     }
 
@@ -519,8 +519,10 @@ public class ChartController {
         long size = chartQueryRequest.getPageSize();
         // 限制爬虫
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        QueryWrapper<Chart> queryWrapper = getQueryWrapper(chartQueryRequest);
+        queryWrapper.orderByDesc("createTime");
         Page<Chart> chartPage = chartService.page(new Page<>(current, size),
-                getQueryWrapper(chartQueryRequest));
+                queryWrapper);
         return ResultUtils.success(chartPage);
     }
 
