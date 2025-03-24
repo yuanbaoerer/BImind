@@ -2,6 +2,25 @@
 # @author <a href="https://github.com/liyupi">程序员鱼皮</a>
 # @from <a href="https://yupi.icu">编程导航知识星球</a>
 spring:
+#  rabbitmq:
+#    host: localhost
+#    port: 5672
+#    username: guest
+#    password: guest
+#    # 可选配置：虚拟主机，默认是 /
+##    virtual-host: /
+#    # 可选配置：连接超时时间，单位为毫秒
+#    connection-timeout: 15000
+#    listener:
+#      simple:
+#        # 并发消费者数量
+#        concurrency: 5
+#        # 最大并发消费者数量
+#        max-concurrency: 10
+#        # 每次预取的消息数量
+#        prefetch: 1
+#        # 自动确认消息
+#        acknowledge-mode: auto
   application:
     name: BI_mind_backend
   # 默认 dev 环境
@@ -109,3 +128,6 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.yupi.springbootinit.controller
+
+
+
